@@ -64,7 +64,7 @@ class RootTests(Fixture):
         with self.assertRaises(Denied):self.read_config()
 
     def test_broad_and_service_roots_rejected(self):
-        for path in (self.base,self.service,self.service/'workspace',Path('/tmp'),Path('/home/exampleuser'),Path('/home/exampleuser/projects')):
+        for path in (self.base,self.service,self.service/'workspace',Path('/tmp'),Path('/home'),Path('/home')):
             self.config_write([{**self.entry,'path':str(path)}])
             with self.subTest(path=path),self.assertRaises(Denied):self.read_config()
 
@@ -126,25 +126,25 @@ class RootTests(Fixture):
         self.config_write([self.entry])
         with self.assertRaises(Denied):self.read_config()
 
-    def test_existing_romans_worktree_read_status(self):
+    def test_existing_primary_worktree_read_status(self):
         worktree=self.base/'m8-trade'
         self.rawgit('worktree','add','-q','--detach',str(worktree),'HEAD')
-        entry={'id':'romans-m8-trade','path':str(worktree),
-               'common_dir':str(self.repo/'.git'),'kind':'romans_worktree'}
+        entry={'id':'primary-test-trade','path':str(worktree),
+               'common_dir':str(self.repo/'.git'),'kind':'primary_worktree'}
         paths=self.configured_paths([entry])
         git=Git(paths,Allow())
-        self.assertEqual(git.state('romans-m8-trade')['head'],self.rawgit('rev-parse','HEAD'))
-        self.assertIsNone(git.state('romans-m8-trade')['branch'])
-        with self.assertRaises(Denied):Files(paths,Allow()).create('romans-m8-trade','no.txt','not allowed')
+        self.assertEqual(git.state('primary-test-trade')['head'],self.rawgit('rev-parse','HEAD'))
+        self.assertIsNone(git.state('primary-test-trade')['branch'])
+        with self.assertRaises(Denied):Files(paths,Allow()).create('primary-test-trade','no.txt','not allowed')
 
     def test_worktree_backlink_tamper_refused_on_next_operation(self):
         worktree=self.base/'m8-trade'
         self.rawgit('worktree','add','-q','--detach',str(worktree),'HEAD')
-        entry={'id':'romans-m8-trade','path':str(worktree),'common_dir':str(self.repo/'.git'),'kind':'romans_worktree'}
+        entry={'id':'primary-test-trade','path':str(worktree),'common_dir':str(self.repo/'.git'),'kind':'primary_worktree'}
         paths=self.configured_paths([entry])
         admin=Path((worktree/'.git').read_text().strip()[8:])
         (admin/'gitdir').write_text(str(self.base/'wrong'/'.git'))
-        with self.assertRaises(Denied):paths.root('romans-m8-trade')
+        with self.assertRaises(Denied):paths.root('primary-test-trade')
 
     def test_revoke_root_after_reload(self):
         paths=self.configured_paths()
@@ -160,12 +160,12 @@ class ServiceTests(unittest.TestCase):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             base=Path(tmp)
-            (base/'fixture.yaml').write_text('config_version: 1\ncontrol_plane:\n  base_url: https://api.openai.com\n  tunnel_id: tunnel_EXAMPLE_ID\nhealth:\n  listen_addr: 127.0.0.1:0\nmcp:\n  commands:\n    - channel: main\n      command: /usr/bin/python3\n')
+            (base/'fixture.yaml').write_text('config_version: 1\ncontrol_plane:\n  base_url: https://api.openai.com\n  tunnel_id: tunnel_0123456789abcdef0123456789abcdef\nhealth:\n  listen_addr: 127.0.0.1:0\nmcp:\n  commands:\n    - channel: main\n      command: /usr/bin/python3\n')
             key=base/'runtime-key'
             fake='FAKE_RUNTIME_KEY_FOR_LOCAL_DOCTOR_ONLY'
             key.write_text(fake)
             key.chmod(0o600)
-            r=subprocess.run(['/home/exampleuser/.local/bin/tunnel-client','doctor','--profile','fixture',
+            r=subprocess.run([str(__import__('settings').home_dir() / '.local/bin/tunnel-client'),'doctor','--profile','fixture',
                 '--profile-dir',str(base),'--control-plane.api-key','file:'+str(key)],
                 capture_output=True,text=True,timeout=15,env={'PATH':'/usr/bin:/bin'})
             self.assertEqual(r.returncode,0,'Official doctor should accept the explicit file reference')
@@ -215,8 +215,8 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(data['DISPLAY'],':0')
 
     def test_secret_reference_never_key_value_in_argv(self):
-        args=command(Path('/run/user/1000/credentials/ubuntu-commander.service'))
-        self.assertIn('file:/run/user/1000/credentials/ubuntu-commander.service/runtime-api-key',args)
+        args=command(Path('/run/user/1000/credentials/linux-terminal-commander.service'))
+        self.assertIn('file:/run/user/1000/credentials/linux-terminal-commander.service/runtime-api-key',args)
         self.assertIn('127.0.0.1:0',args)
         self.assertNotIn('--allow-remote-ui',args)
 

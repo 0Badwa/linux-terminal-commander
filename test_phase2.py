@@ -1,4 +1,4 @@
-"""Focused security/regression tests. Fixtures never touch the Romans! checkout."""
+"""Focused security/regression tests. Fixtures never touch the configured project checkout."""
 import asyncio
 import json
 import os
@@ -28,7 +28,7 @@ class Allow:
 
 class Fixture(unittest.TestCase):
     def setUp(self):
-        self.tmp=tempfile.TemporaryDirectory(prefix='romans-phase2-test-')
+        self.tmp=tempfile.TemporaryDirectory(prefix='ltc-fixture-test-')
         self.base=Path(self.tmp.name)
         self.repo=self.base/'repo'
         self.repo.mkdir()
@@ -386,7 +386,7 @@ class JobTests(Fixture):
 
 class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_new_tools_discoverable(self):
-        with tempfile.TemporaryDirectory(prefix='romans-phase2-discovery-') as tmp:
+        with tempfile.TemporaryDirectory(prefix='ltc-fixture-discovery-') as tmp:
             repo=Path(tmp)/'repo'
             repo.mkdir()
             subprocess.run(['/usr/bin/git','init','-q',str(repo)],check=True)

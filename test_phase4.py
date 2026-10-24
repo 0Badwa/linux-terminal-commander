@@ -96,11 +96,12 @@ class PromptTests(unittest.TestCase):
         self.assertFalse(list(outside.iterdir()))
         self.directory.unlink()
         self.directory.mkdir(mode=0o755)
+        self.directory.chmod(0o755)
         with self.assertRaisesRegex(Denied, '0700'):
             prompts.save_prompt('task.md', 'text')
 
     def test_wrong_owner_refused(self):
-        with patch.object(prompts.os, 'getuid', return_value=os.getuid()+1), self.assertRaisesRegex(Denied, 'exampleuser'):
+        with patch.object(prompts.os, 'getuid', return_value=os.getuid()+1), self.assertRaisesRegex(Denied, 'local user'):
             prompts.save_prompt('task.md', 'text')
 
     def test_final_symlink_injected_at_publication(self):

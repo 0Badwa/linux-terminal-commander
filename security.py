@@ -206,7 +206,7 @@ class Approval:
         try:
             try:
                 result = subprocess.run(['/usr/bin/zenity', '--question', '--no-markup',
-                    '--title=Romans! MCP — local approval', '--ok-label=Approve once',
+                    '--title=Linux Terminal Commander — local approval', '--ok-label=Approve once',
                     '--cancel-label=Deny', '--timeout=55',
                     '--text=' + summary + '\n\nAction fingerprint: ' + digest],
                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,

@@ -44,7 +44,7 @@ class Policy:
         self.state = private_directory(paths.workspace / 'commander')
         self.config_path = self.state / 'config.json'
         self.locations = tuple(Path(x) for x in (locations or (
-            '/home/exampleuser/projects', '/home/exampleuser/projects', '/home/exampleuser/.codex/worktrees')))
+            str(Path.home() / 'Projects'), str(Path.home() / 'projects'), str(Path.home() / '.codex/worktrees'))))
 
     def config(self):
         nonroot()
@@ -97,7 +97,7 @@ class Policy:
                 if not (root / '.git').exists():
                     raise Denied('Explicit project scopes must be existing Git checkouts/worktrees.')
                 if root == self.paths.project:
-                    raise Denied('Original Romans! checkout remains read-only.')
+                    raise Denied('Configured primary project remains read-only.')
         elif key == 'advisory_guards':
             if not isinstance(value, list) or len(value) > 32 or any(
                 not isinstance(e, dict) or len(e) != 1 or
@@ -113,7 +113,7 @@ class Policy:
         # All configuration changes receive local approval, including tightening.
         self.approval.require('commander_configuration', {
             'key': key, 'value': value,
-            'warning': ('ONE-TIME REAL HOST ACTIVATION: connected trusted callers may read/modify anything accessible to exampleuser, run Bash and network commands in any real cwd WITHOUT further command/project dialogs. File APIs retain protected-name/version checks. Directory lists and command patterns are advisory, NOT a shell sandbox. No root elevation. Approve only for trusted callers.' if activating else 'Durable preference change; host mode is user-level shell access.')})
+            'warning': ('ONE-TIME REAL HOST ACTIVATION: connected trusted callers may read/modify anything accessible to the local Linux user, run Bash and network commands in any real cwd WITHOUT further command/project dialogs. File APIs retain protected-name/version checks. Directory lists and command patterns are advisory, NOT a shell sandbox. No root elevation. Approve only for trusted callers.' if activating else 'Durable preference change; host mode is user-level shell access.')})
         with self.paths.lock:
             if self.config() != before:
                 raise Denied('Configuration changed during approval; retry.')
@@ -166,7 +166,7 @@ class Policy:
             # Keep old root-ID APIs untouched. Pin traversal from a real root and
             # reject symlinks rather than following them across protected names.
             root = Path('/')
-            worktrees = Path('/home/exampleuser/.codex/worktrees')
+            worktrees = Path.home() / '.codex/worktrees'
             if p.is_relative_to(worktrees) and len(p.relative_to(worktrees).parts) >= 2:
                 root = worktrees / p.relative_to(worktrees).parts[0]
             if any(not self.path_allowed(part) for part in p.relative_to(root).parts):
@@ -196,7 +196,7 @@ class Policy:
             raise Denied('Protected path or generated/cache directory.')
         if write:
             if p.is_relative_to(self.paths.project):
-                raise Denied('Original Romans! checkout remains read-only.')
+                raise Denied('Configured primary project remains read-only.')
             writable = p.is_relative_to(self.paths.files)
             writable |= any(p.is_relative_to(e['path']) and e['write'] for e in scopes)
             # Existing enrolled read-only roots never become implicitly writable.

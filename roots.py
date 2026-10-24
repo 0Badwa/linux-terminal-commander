@@ -8,8 +8,8 @@ import stat
 from security import Denied, component_allowed
 
 
-DEVELOPMENT_LOCATIONS = (Path('/home/exampleuser/projects'), Path('/home/exampleuser/projects'))
-CODEX_WORKTREES = Path('/home/exampleuser/.codex/worktrees')
+DEVELOPMENT_LOCATIONS = (Path.home() / 'Projects', Path.home() / 'projects')
+CODEX_WORKTREES = Path.home() / '.codex/worktrees'
 ROOT_ID = re.compile(r'[a-z][a-z0-9-]{0,79}\Z')
 
 
@@ -119,8 +119,8 @@ def load(config, project, service, development_locations=None, codex_worktrees=N
         if path == service or path.is_relative_to(service) or service.is_relative_to(path):
             raise Denied('The MCP service and parent directories cannot be enrolled.')
         direct = path.parent in locations
-        codex_romans = path.parent.parent == codex and kind == 'romans_worktree' and common == project / '.git'
-        if not direct and not codex_romans:
+        primary_worktree = path.parent.parent == codex and kind == 'primary_worktree' and common == project / '.git'
+        if not direct and not primary_worktree:
             raise Denied('Root is outside the fixed development locations.')
         components = (path.name,) if direct else (path.parent.name, path.name)
         if any(not component_allowed(part) for part in components):
@@ -128,9 +128,9 @@ def load(config, project, service, development_locations=None, codex_worktrees=N
         if kind == 'repository':
             if common != path / '.git':
                 raise Denied('A repository root must have its own Git common directory.')
-        elif kind == 'romans_worktree':
+        elif kind == 'primary_worktree':
             if common != project / '.git' or path == project:
-                raise Denied('Romans! worktree must belong to the original repository.')
+                raise Denied('Primary worktree must belong to the original repository.')
         elif kind == 'development_worktree':
             if common.parent.parent not in locations or common.name != '.git':
                 raise Denied('Development worktree common directory is outside the fixed locations.')

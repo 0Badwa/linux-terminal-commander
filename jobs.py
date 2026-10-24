@@ -145,7 +145,7 @@ class Jobs:
         if task in ('core_test','desktop_classes'):
             _, common = self.git._layout(root)
             if common != self.paths.project / '.git':
-                raise Denied('Gradle presets are restricted to Romans! checkouts.')
+                raise Denied('Gradle presets are restricted to the configured primary project checkout.')
             if paths or expected_head:
                 raise Denied('Gradle jobs accept only root, task, test filters and timeout.')
             argv=gradle_args(task,tests)

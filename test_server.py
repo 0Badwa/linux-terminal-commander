@@ -14,9 +14,9 @@ import server
 class ToolTests(unittest.TestCase):
     def test_system_status(self):
         result = server.system_status()
-        self.assertIn('Ubuntu', result['ubuntu_version'])
+        self.assertTrue(result['distribution'])
         self.assertEqual(result['hostname'], socket.gethostname())
-        self.assertEqual(set(result), {'ubuntu_version', 'hostname', 'current_user'})
+        self.assertEqual(set(result), {'distribution', 'hostname', 'current_user'})
         self.assertTrue(result['current_user'])
 
     def test_project_status(self):
@@ -43,7 +43,7 @@ class ToolTests(unittest.TestCase):
         path = Path(result['marker_path'])
         try:
             self.assertEqual(path.parent.parent, Path('/tmp'))
-            self.assertTrue(path.parent.name.startswith('romans-terminal-mcp-probe-'))
+            self.assertTrue(path.parent.name.startswith('linux-terminal-commander-probe-'))
             self.assertEqual(path.name, 'probe.txt')
             self.assertEqual(path.read_bytes(), server.MARKER)
             self.assertEqual(result['bytes_written'], len(server.MARKER))

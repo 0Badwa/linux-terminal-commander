@@ -9,7 +9,8 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parent
-CLIENT = '/home/exampleuser/.local/bin/tunnel-client'
+from settings import tunnel_client, PROFILE_NAME
+CLIENT = tunnel_client()
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--terminal-input', action='store_true', help='Use hidden terminal input instead of the local GUI dialog')
 parser.add_argument('--replace-running', action='store_true', help='After local key entry and doctor, stop only the verified existing foreground runtime')
@@ -19,7 +20,7 @@ if os.geteuid() == 0:
 if args.terminal_input:
     key = getpass.getpass('Restricted runtime API key (Tunnels Read + Use): ')
 else:
-    entry = subprocess.run(['/usr/bin/zenity', '--password', '--title=Romans! MCP runtime key', '--text=Unesi isti Restricted runtime API key (Tunnels Read + Use). Ključ ostaje samo u memoriji.'], capture_output=True, text=True)
+    entry = subprocess.run(['/usr/bin/zenity', '--password', '--title=Linux Terminal Commander runtime key', '--text=Enter a restricted tunnel runtime key (Tunnels Read + Use). Kept only in memory.'], capture_output=True, text=True)
     if entry.returncode:
         raise SystemExit('Local key entry cancelled; no tunnel started.')
     key = entry.stdout.rstrip('\n')
@@ -27,7 +28,7 @@ if not key or '\n' in key or key.startswith('sk-admin'):
     raise SystemExit('A non-admin runtime key is required.')
 env = {k:v for k,v in os.environ.items() if not k.startswith(('CONTROL_PLANE_', 'OPENAI_', 'MCP_', 'HARPOON_', 'CLOUDFLARED_', 'TUNNEL_CLIENT_', 'HEALTH_', 'LOG_', 'TRACING_'))}
 env['CONTROL_PLANE_API_KEY'] = key
-profile = ['--profile', 'example-profile', '--profile-dir', str(ROOT/'profiles')]
+profile = ['--profile', PROFILE_NAME, '--profile-dir', str(ROOT/'profiles')]
 check = subprocess.run([CLIENT, 'doctor', *profile, '--explain'], env=env, capture_output=True, text=True, timeout=60)
 print(check.stdout.replace(key, '[REDACTED]'), flush=True)
 print(check.stderr.replace(key, '[REDACTED]'), flush=True)

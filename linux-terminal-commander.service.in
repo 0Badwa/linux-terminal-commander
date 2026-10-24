@@ -1,0 +1,26 @@
+[Unit]
+Description=Linux Terminal Commander private MCP tunnel
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=@ROOT@
+LoadCredential=runtime-api-key:@CONFIG@/runtime-api-key
+ExecStart=@PYTHON@ @ROOT@/service_runner.py
+Restart=on-failure
+RestartSec=10
+RestartPreventExitStatus=78
+TimeoutStopSec=20
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+LimitCORE=0
+LimitNOFILE=256
+TasksMax=512
+
+[Install]
+WantedBy=default.target

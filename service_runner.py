@@ -8,11 +8,12 @@ import time
 
 
 ROOT = Path(__file__).resolve().parent
-CLIENT = Path('/home/exampleuser/.local/bin/tunnel-client')
+from settings import project_root, tunnel_client, PROFILE_NAME, home_dir
+CLIENT = str(Path.home() / '.local/bin/tunnel-client')
 
 
 def build_environment(environment):
-    result = {'PATH': '/usr/bin:/bin', 'HOME': '/home/exampleuser', 'LANG': 'C.UTF-8'}
+    result = {'PATH': '/usr/bin:/bin', 'HOME': str(home_dir()), 'LANG': 'C.UTF-8'}
     # Only desktop/session coordinates needed for existing local approval dialogs.
     for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'XAUTHORITY', 'XDG_RUNTIME_DIR', 'DBUS_SESSION_BUS_ADDRESS'):
         if environment.get(name):
@@ -21,7 +22,7 @@ def build_environment(environment):
 
 
 def command(credential_directory):
-    return [str(CLIENT), 'run', '--profile', 'example-profile', '--profile-dir', str(ROOT / 'profiles'),
+    return [str(CLIENT), 'run', '--profile', PROFILE_NAME, '--profile-dir', str(ROOT / 'profiles'),
             '--control-plane.api-key', 'file:' + str(credential_directory / 'runtime-api-key'),
             '--log.level', 'warn', '--health.listen-addr', '127.0.0.1:0',
             '--health.url-file', str(ROOT / 'runtime' / 'custom-health.url'),
@@ -29,26 +30,18 @@ def command(credential_directory):
 
 
 def validate_roots():
-    """Read-only startup probe in the real systemd service security context."""
+    """Fail startup unless the configured project and optional root enrollment are usable."""
     from security import Paths
     from gitops import Git
-    paths = Paths(Path('/home/exampleuser/projects/example-project'), ROOT / 'workspace',
-                  root_config=ROOT / 'approved_roots.json')
+    selected = project_root()
+    config = ROOT / 'approved_roots.json'
+    paths = Paths(selected, ROOT / 'workspace', root_config=config if config.is_file() else None)
     class ReadOnly:
         def require(self, *args):
-            raise ValueError('Startup validation never approves writes.')
-    git = Git(paths, ReadOnly())
-    main = git.state('project')
-    candidates = sorted(name for name, entry in paths.enrolled.items() if entry['kind'] == 'romans_worktree')
-    selected = 'romans-wt-m8a-trade' if 'romans-wt-m8a-trade' in candidates else (candidates[0] if candidates else None)
-    extra = git.state(selected) if selected else None
-    evidence = {'observed_at': time.time(), 'root_count': len(paths.roots), 'main': main,
-                'new_root_checked': selected, 'new_root_state': extra, 'read_only': True}
-    target = ROOT / 'runtime' / 'service-preflight.json'
-    temporary = target.with_suffix('.new')
-    temporary.write_text(json.dumps(evidence, indent=2) + '\n')
-    temporary.chmod(0o600)
-    os.replace(temporary, target)
+            raise ValueError('Startup validation does not approve writes.')
+    state = Git(paths, ReadOnly()).state('project')
+    if not state.get('head'):
+        raise ValueError('Project repository has no Git HEAD.')
 
 
 def main():
@@ -79,6 +72,8 @@ def main():
             path.unlink()
     os.umask(0o077)
     validate_roots()
+    global CLIENT
+    CLIENT = tunnel_client()
     os.execve(CLIENT, command(credential_directory), build_environment(os.environ))
 
 
@@ -87,5 +82,5 @@ if __name__ == '__main__':
         main()
     except Exception:
         # No exception strings, argv, environment, or credential content in the journal.
-        print('Ubuntu Commander startup refused: check credential metadata, configuration, and prior runtime.', file=sys.stderr)
+        print('Linux Terminal Commander startup refused: check credential metadata, configuration, and prior runtime.', file=sys.stderr)
         raise SystemExit(78)

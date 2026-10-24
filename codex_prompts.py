@@ -12,7 +12,7 @@ import uuid
 from security import Denied, nonroot
 
 
-PROMPT_DIRECTORY = Path('/tmp/romans-codex-prompts')
+PROMPT_DIRECTORY = Path('/tmp/linux-terminal-commander-prompts')
 MAX_PROMPT_BYTES = 256 * 1024
 FILENAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,119}\.md\Z', re.ASCII)
 
@@ -44,8 +44,8 @@ def _check_directory(parent, directory):
 
 def save_prompt(filename, content):
     nonroot()
-    if os.getuid() != pwd.getpwnam('exampleuser').pw_uid:
-        raise Denied('Codex prompt delivery must run as exampleuser.')
+    if os.getuid() != os.geteuid():
+        raise Denied('Codex prompt delivery must run as the local user.')
     if not isinstance(filename, str) or not FILENAME.fullmatch(filename):
         raise Denied('Use a basename ending in .md: 1..120 ASCII letters, digits, underscores or hyphens; start with a letter or digit.')
     if not isinstance(content, str) or not content or '\x00' in content or len(content) > MAX_PROMPT_BYTES:
@@ -96,7 +96,7 @@ def save_prompt(filename, content):
         raise
     except OSError as exc:
         if exc.errno in (errno.EACCES, errno.EPERM, errno.EROFS):
-            raise Denied('Prompt directory is not writable; check exampleuser ownership, mode 0700 and service filesystem restrictions.') from None
+            raise Denied('Prompt directory is not writable; check user ownership, mode 0700 and service filesystem restrictions.') from None
         if exc.errno == errno.ENOSPC:
             raise Denied('No space available in /tmp; free space and retry with a new filename.') from None
         raise Denied('Prompt delivery failed safely; check for symlinks, changed directory entries or unavailable /tmp storage.') from None

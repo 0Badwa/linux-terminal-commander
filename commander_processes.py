@@ -1,9 +1,11 @@
 """Finite independently supervised Bash/PTY sessions; no host fallback from isolation."""
 import hashlib
+from itertools import chain
 import json
 import os
 from pathlib import Path
 import re
+import resource
 import shutil
 import subprocess
 import sys
@@ -186,8 +188,13 @@ class Processes:
                 else:
                     home = private_directory(path / 'home')
                     environment = clean_environment(home)
+                    # Never try to raise an inherited hard CPU limit. Container and
+                    # nested shells can set a lower cap, and prlimit would refuse
+                    # the entire command instead of enforcing a stricter one.
+                    inherited_hard = resource.getrlimit(resource.RLIMIT_CPU)[1]
+                    cpu_limit = timeout if inherited_hard == resource.RLIM_INFINITY else min(timeout, inherited_hard)
                     argv = ['/usr/bin/setpriv', '--no-new-privs', '/usr/bin/prlimit', '--core=0', '--nofile=128', '--fsize=67108864',
-                            '--as=6442450944', '--cpu='+str(timeout), '--',
+                            '--as=6442450944', '--cpu='+str(cpu_limit), '--',
                             '/usr/bin/bash', '--noprofile', '--norc', '-c', command]
                 state = {'session_id': ident, 'state': 'queued', 'created_at': time.time(),
                          'cwd': cwd, 'mode': mode, 'pty': pty, 'timeout_seconds': timeout,
@@ -288,11 +295,16 @@ class Processes:
     def processes(self, filter='', limit=100):
         if not isinstance(filter, str) or len(filter) > 80 or not 1 <= limit <= 200:
             raise Denied('Process filter <=80 characters and limit 1..200.')
-        owned = {s.get('pid'): s['session_id'] for s in self.list()['sessions'] if s['state'] in ACTIVE}
+        owned = {s.get('pid'): s['session_id'] for s in self.list()['sessions']
+                 if s['state'] in ACTIVE and type(s.get('pid')) is int}
         entries = []
-        for p in Path('/proc').iterdir():
-            if not p.name.isdigit():
-                continue
+        # The process limit applies to the entire user, whose /proc ordering is
+        # arbitrary. Put tracked sessions first so unrelated processes cannot
+        # hide the very processes this API is responsible for reporting.
+        proc = Path('/proc')
+        tracked = [proc / str(pid) for pid in owned]
+        others = (p for p in proc.iterdir() if p.name.isdigit() and int(p.name) not in owned)
+        for p in chain(tracked, others):
             try:
                 if p.stat().st_uid != os.getuid():
                     continue

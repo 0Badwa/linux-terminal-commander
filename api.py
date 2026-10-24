@@ -66,7 +66,7 @@ def register(mcp,project,workspace,root_config=None):
 
     @tool(False)
     def save_codex_prompt(filename: str,content: str) -> dict:
-        """Save a new UTF-8 Markdown Codex task in /tmp/romans-codex-prompts without a local dialog. Explicitly preauthorized only for this directory; safe .md basename, 256 KiB maximum, no overwrite or execution. Returns verified path, byte count and SHA-256."""
+        """Save a new UTF-8 Markdown Codex task in /tmp/linux-terminal-commander-prompts without a local dialog. Explicitly preauthorized only for this directory; safe .md basename, 256 KiB maximum, no overwrite or execution. Returns verified path, byte count and SHA-256."""
         return save_prompt(filename,content)
 
     @tool(False)

@@ -1,5 +1,6 @@
 """Fixed executable sandbox and bounded foreground command capture."""
 import os
+import resource
 from pathlib import Path
 import selectors
 import signal
@@ -14,8 +15,10 @@ def sandbox(mounts, cwd, argv, network=False, cache=None, timeout=30):
     nonroot()
     if not Path('/usr/bin/bwrap').is_file():
         raise Denied('bubblewrap is required; execution is disabled.')
+    inherited_hard = resource.getrlimit(resource.RLIMIT_CPU)[1]
+    cpu_limit = timeout if inherited_hard == resource.RLIM_INFINITY else min(timeout, inherited_hard)
     cmd = ['/usr/bin/prlimit', '--core=0', '--nofile=128',
-           '--fsize=67108864', '--as=6442450944', '--cpu=' + str(timeout), '--',
+           '--fsize=67108864', '--as=6442450944', '--cpu=' + str(cpu_limit), '--',
            '/usr/bin/bwrap', '--unshare-all', '--die-with-parent', '--new-session',
            '--cap-drop', 'ALL', '--ro-bind', '/usr', '/usr',
            '--symlink', 'usr/bin', '/bin', '--symlink', 'usr/lib', '/lib',
