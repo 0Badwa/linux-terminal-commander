@@ -1,0 +1,18 @@
+# Machine-specific installation state
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+profiles/
+runtime/
+workspace/
+*backup*/
+approved_roots.json
+APPROVED_ROOTS.md
+INSTALLATION.json
+phase*-original-*.json
+*.log
+*.pid
+*.key
+*.pem
