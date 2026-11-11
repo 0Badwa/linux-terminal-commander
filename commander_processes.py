@@ -13,7 +13,7 @@ import time
 import uuid
 
 from commander_policy import allowed, atomic_json
-from execution import sandbox
+from execution import MAX_FILE_BYTES, sandbox
 from security import Denied, nonroot, private_directory, redact
 
 ACTIVE = ('queued', 'running')
@@ -193,7 +193,7 @@ class Processes:
                     # the entire command instead of enforcing a stricter one.
                     inherited_hard = resource.getrlimit(resource.RLIMIT_CPU)[1]
                     cpu_limit = timeout if inherited_hard == resource.RLIM_INFINITY else min(timeout, inherited_hard)
-                    argv = ['/usr/bin/setpriv', '--no-new-privs', '/usr/bin/prlimit', '--core=0', '--nofile=128', '--fsize=67108864',
+                    argv = ['/usr/bin/setpriv', '--no-new-privs', '/usr/bin/prlimit', '--core=0', '--nofile=128', f'--fsize={MAX_FILE_BYTES}',
                             '--as=6442450944', '--cpu='+str(cpu_limit), '--',
                             '/usr/bin/bash', '--noprofile', '--norc', '-c', command]
                 state = {'session_id': ident, 'state': 'queued', 'created_at': time.time(),

@@ -33,6 +33,8 @@ class PortableTests(unittest.TestCase):
         with patch.object(execution.resource, 'getrlimit', return_value=(5, 5)):
             arguments = execution.sandbox([], '/work', ['/usr/bin/true'], timeout=600)
         self.assertIn('--cpu=5', arguments)
+        self.assertIn('--fsize=2147483648', arguments)
+        self.assertIn('--as=6442450944', arguments)
 
     def test_template_name_and_private_defaults(self):
         text = (ROOT / 'linux-terminal-commander.service.in').read_text()

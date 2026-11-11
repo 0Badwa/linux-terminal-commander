@@ -9,6 +9,9 @@ import time
 
 from security import Denied, MAX_OUTPUT, nonroot, redact
 
+# Keep generated compiler outputs bounded without rejecting normal Rust/Bevy artifacts.
+MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024
+
 
 def sandbox(mounts, cwd, argv, network=False, cache=None, timeout=30):
     """No host home, /tmp, process namespace, hooks, or inherited secrets."""
@@ -18,7 +21,7 @@ def sandbox(mounts, cwd, argv, network=False, cache=None, timeout=30):
     inherited_hard = resource.getrlimit(resource.RLIMIT_CPU)[1]
     cpu_limit = timeout if inherited_hard == resource.RLIM_INFINITY else min(timeout, inherited_hard)
     cmd = ['/usr/bin/prlimit', '--core=0', '--nofile=128',
-           '--fsize=67108864', '--as=6442450944', '--cpu=' + str(cpu_limit), '--',
+           f'--fsize={MAX_FILE_BYTES}', '--as=6442450944', '--cpu=' + str(cpu_limit), '--',
            '/usr/bin/bwrap', '--unshare-all', '--die-with-parent', '--new-session',
            '--cap-drop', 'ALL', '--ro-bind', '/usr', '/usr',
            '--symlink', 'usr/bin', '/bin', '--symlink', 'usr/lib', '/lib',
